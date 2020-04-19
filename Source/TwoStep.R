@@ -153,7 +153,7 @@ new_country <- function(raw, loc, len = 14, ...) {
 }
 
 
-update_country <- function(raw, old_res, len = 14, check_converge = F, ...) {
+update_country <- function(raw, old_res, len = 14, ...) {
   dates <- sapply(old_res$Estimates, function(ind) { ind$Date })
   loc = old_res$Location
   
@@ -161,8 +161,6 @@ update_country <- function(raw, old_res, len = 14, check_converge = F, ...) {
     sel <- raw
     if (!(sel$Date[nrow(sel)] %in% dates)) {
       old_res$Estimates[[length(old_res$Estimates) + 1]] <-  suppressWarnings(a_time_point(sel, ...))
-    } else {
-      
     }
   } else {
     for (i in (len + 2):nrow(raw)) {
@@ -176,3 +174,42 @@ update_country <- function(raw, old_res, len = 14, check_converge = F, ...) {
   }
   old_res
 }
+
+
+renew_country <- function(raw, old_res, len = 14, ...) {
+  loc = old_res$Location
+  dates <- sapply(old_res$Estimates, function(ind) { ind$Date })
+  
+  if (nrow(raw) <= len + 2) {
+    sel <- raw
+    res <- old_res$Estimates[[1]]
+    if (!res$Converge) {
+      res_new <- suppressWarnings(a_time_point(sel, ...))
+      if (res_new$Rhat < res$Rhat) {
+        res_new$N_try <- res_new$N_try + res$N_try 
+        res <- res_new
+      }
+    }
+    indices <- list(res)
+  } else {
+    indices <- lapply((len + 2):nrow(raw), function(i) {
+      sel <- raw[i - ((len + 1):0), ]
+      res <- old_res$Estimates[[which(dates == sel$Date[nrow(sel)])]]
+      if (!res$Converge) {
+        res_new <- suppressWarnings(a_time_point(sel, ...))
+        if (res_new$Rhat < res$Rhat) {
+          res_new$N_try <- res_new$N_try + res$N_try 
+          res <- res_new
+        }
+        cat(loc, " ", format.Date(res$Date, "%d-%b"), ifelse(res$Converge, "*", ""), "\n")
+      }
+      res
+    })
+  }
+  
+  list(
+    Location = loc,
+    Estimates = indices
+  )
+}
+
