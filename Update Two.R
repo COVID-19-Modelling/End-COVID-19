@@ -4,10 +4,12 @@ load(file = "Data/Input.rdata")
 # epi_indices <- list()
 load(file = "Output/EpiIndices.rdata")
 
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+Sys.setenv(LOCAL_CPPFLAGS = '-march=corei7 -mtune=corei7')
 
 n_iter <- 1E4
 n_chain <- 2
-max_attempt <- 3
 
 renew <- T
 
@@ -19,7 +21,7 @@ for (country in names(n_by_country)) {
     old_res <- epi_indices[[country]]
     res <- update_country(raw, old_res, n_chain = n_chain, refresh = 0, n_iter_2 = n_iter)
     if (renew) {
-      res <- renew_country(raw, old_res = res, refresh = 0, n_iter_2 = n_iter * 5)
+      res <- renew_country(raw, old_res = res, refresh = 0, n_chain = n_chain, n_iter_2 = n_iter * 2)
     }
     epi_indices[[country]] <- res
   } else {
